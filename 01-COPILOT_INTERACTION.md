@@ -1,5 +1,5 @@
 # Image analysis folder support
-_Exported on 11/4/2026 at 19:35:31 PST from Cursor (3.28.7)_
+_Exported on 11/4/2026 at 20:24:35 PST from Cursor (3.28.7)_
 
 ---
 
@@ -235,4 +235,182 @@ Using `openspec archive` to sync specs and move the change.
 **Specs:** Synced to main specs (`analysis-inputs`: 7 requirements added)
 
 All artifacts complete. All tasks complete.
+
+---
+
+**User**
+
+/opsx-propose Create a project skill, static-analysis-fix, and a /opsx-static-fix command to resolve static analysis
+findings in Markdown and Go using a spec-driven workflow: ingest a report or run the analyzers (markdownlint-cli2 only on
+the project Markdown files: "**/*.md" "#openspec" "#.cursor" "#node_modules", go vet, staticcheck/golangci-lint, Docker
+fallback for CGO packages), triage and group the findings, create an OpenSpec change with proposal, design, specs and tasks,
+apply the fixes task by task, re-run the analyzers, and archive when clean. Fixes must preserve behavior, prefer real fixes
+over suppressions, allow no blanket nolint or markdownlint-disable, and record every deferral with the finding id and a
+rationale. Stop after two fix and re-run rounds and report what is left. Do not change the recognition pipeline, models or
+Docker native dependencies. Use the existing .golangci.yml (v2); do not create a new one.
+
+---
+
+**Cursor**
+
+I'll propose a change for the static-analysis-fix skill and `/opsx-static-fix` command, using the existing skill/command patterns and `.golangci.yml`.
+
+Creating change **static-analysis-fix-workflow** for the project skill and `/opsx-static-fix` command.
+
+Change **`static-analysis-fix-workflow`** is ready at `openspec/changes/static-analysis-fix-workflow/`.
+
+| Artifact | Summary |
+|---|---|
+| `proposal.md` | Why: repeatable lint-fix loop; deliver skill + `/opsx-static-fix`; analyzer/fix/deferral policies; hard exclusions |
+| `design.md` | How: opsx-style skill+command; OpenSpec as fix vehicle; analyzer matrix; two-round stop; existing `.golangci.yml` only |
+| `specs/static-analysis-fix/spec.md` | Requirements for skill/command, workflow, markdownlint scope, Go/Docker, fix quality, two-round stop, exclusions |
+| `tasks.md` | Write `SKILL.md`, write command wrapper, sanity-check no new golangci config |
+
+All artifacts created. Ready for implementation.
+
+Run `/opsx:apply` to start implementing.
+
+---
+
+**User**
+
+/opsx:apply
+
+---
+
+**Cursor**
+
+Using change: **static-analysis-fix-workflow** (override with `/opsx:apply <other>`). Loading apply instructions and implementing the skill and command.
+
+## Implementing: static-analysis-fix-workflow (schema: spec-driven)
+
+Progress: **0/10** — writing the skill (tasks 1.1–1.6), then the command.
+
+## Implementation Complete
+
+**Change:** static-analysis-fix-workflow  
+**Schema:** spec-driven  
+**Progress:** 10/10 tasks complete
+
+### Completed This Session
+- [x] `.cursor/skills/static-analysis-fix/SKILL.md` — full workflow, analyzers, policies, exclusions, two-round stop
+- [x] `.cursor/commands/opsx-static-fix.md` — thin wrapper that follows the skill
+- [x] Confirmed only existing `.golangci.yml` (unchanged); no new golangci config
+
+Run `/opsx-static-fix` to clear findings, or archive this meta-change with `/opsx:archive`.
+
+---
+
+**User**
+
+/opsx-static-fix solve the issues in the project Markdown files (not openspec/ or .cursor/) and all issues in go files
+
+---
+
+**Cursor**
+
+Running `/opsx-static-fix` per the skill: reading it, then ingesting/running analyzers.
+
+**Step:** ingest complete — 249 Markdown issues (4 files), 6 Go issues. Creating OpenSpec change `fix-static-analysis-md-go`, then applying fixes.
+
+**Change:** `fix-static-analysis-md-go`. Writing artifacts from triage, then applying fixes.
+
+**Round 1:** Applying Go fixes, then markdownlint `--fix` for auto-fixable Markdown issues.
+
+**Round 1 re-run:** Go clean; Markdown 249→123. Starting **round 2** — fix remaining docs; defer verbatim terminal transcript MD013.
+
+Fixing README TOC/links, DEVCONTAINER structure, and COPILOT issues; deferring the verbatim terminal transcript.
+
+## `/opsx-static-fix` stopped after 2 rounds
+
+**Change:** `fix-static-analysis-md-go` (left **active** — not archived while leftovers remain)  
+**Round:** 2 of 2
+
+### Analyzer status (last re-run)
+
+| Check | Result |
+|---|---|
+| `go vet ./...` | clean |
+| `golangci-lint run` (existing `.golangci.yml`) | clean (0 issues) |
+| `markdownlint-cli2 "**/*.md" "#openspec" "#.cursor" "#node_modules"` | **83** MD013 left in 2 files |
+
+Started at **249** Markdown + **6** Go → Markdown **83**, Go **0**.
+
+### Fixed
+
+- **Go:** `Close` errcheck in `drawer.go` / `load_persons.go`; ST1005 in `cmd/main.go`, `classify_person.go`, `recognize_persons.go`; fail-fast on persons dir open
+- **README.md:** wraps, TOC (`#overview` → real headings), blockquote links
+- **DEVCONTAINER_SETUP.md:** structure, shorter tool table, forum links, troubleshooting as sections, shortened sample output fences
+- **01-COPILOT_INTERACTION.md:** headings, HTML/`stem`, most line wraps
+- **01-TERMINAL_INTERACTION.md:** added H1 only (body kept verbatim)
+
+### Deferred (id + rationale)
+
+| Id | Rationale |
+|---|---|
+| `markdownlint:MD013:01-TERMINAL_INTERACTION.md:*` (76) | Verbatim fenced terminal transcript; wrapping would falsify the lab dump |
+| `markdownlint:MD013:01-COPILOT_INTERACTION.md:57-58,172-175,271` (7) | Long table rows in the chat export; hit the two-round stop |
+
+No blanket `nolint` / `markdownlint-disable`. Recognition pipeline, models, and Docker native deps unchanged. No new `.golangci.yml`.
+
+Archive with `/opsx:archive fix-static-analysis-md-go` when you accept the deferrals, or ask for another pass on the remaining table/transcript lines.
+
+---
+
+**User**
+
+/opsx:archive fix-static-analysis-md-go static-analysis-fix-workflow
+
+---
+
+**Cursor**
+
+Archiving both changes. Checking completion and delta-spec sync state for each.
+
+Both changes are complete (artifacts + tasks). Delta specs still need a sync decision:
+
+### `fix-static-analysis-md-go`
+| Capability | Main spec | Delta |
+|---|---|---|
+| `lint-hygiene` | *(missing)* | **ADD** 2 requirements (Go golangci clean; Markdown markdownlint scope) |
+
+**Note:** Markdown requirement says “no reported issues”; 83 deferred MD013 remain in teaching dumps. Syncing as written may overstate current reality—or you treat deferrals as accepted exceptions.
+
+### `static-analysis-fix-workflow`
+| Capability | Main spec | Delta |
+|---|---|---|
+| `static-analysis-fix` | *(missing)* | **ADD** 7 requirements (skill/command, workflow, analyzers, policies, round limit, exclusions) |
+
+How should I proceed for **both**?
+
+1. **Sync now (recommended)** — create `openspec/specs/lint-hygiene/` and `openspec/specs/static-analysis-fix/`, then archive both  
+2. **Archive without syncing** — move both to `openspec/changes/archive/` only  
+
+Reply `1` or `2`.
+
+---
+
+**User**
+
+1
+
+---
+
+**Cursor**
+
+Syncing both delta specs, then archiving.
+
+## Archive Complete
+
+**Change:** fix-static-analysis-md-go  
+**Schema:** spec-driven  
+**Archived to:** `openspec/changes/archive/2026-11-05-fix-static-analysis-md-go/`  
+**Specs:** Synced (`lint-hygiene`: 2 requirements added)
+
+**Change:** static-analysis-fix-workflow  
+**Schema:** spec-driven  
+**Archived to:** `openspec/changes/archive/2026-11-05-static-analysis-fix-workflow/`  
+**Specs:** Synced (`static-analysis-fix`: 7 requirements added)
+
+All artifacts complete. All tasks complete. No active changes left.
 

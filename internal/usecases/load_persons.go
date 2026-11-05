@@ -33,8 +33,13 @@ func (l *LoadPersonsUseCaseImpl) Execute(personsDir string) (map[int]*entity.Per
 	dir, err := os.Open(personsDir)
 	if err != nil {
 		fmt.Println("Error on open persons directory:", err)
+		return nil, err
 	}
-	defer dir.Close()
+	defer func() {
+		if cerr := dir.Close(); cerr != nil {
+			fmt.Println("Error on close persons directory:", cerr)
+		}
+	}()
 
 	// Read the directory content
 	subFolders, err := dir.Readdir(-1)

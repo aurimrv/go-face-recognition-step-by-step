@@ -90,7 +90,7 @@ func processJob(
 ) error {
 	recognizedFaces, err := classifyPersonUseCase.Execute(job.Src, 0.3)
 	if err != nil {
-		return fmt.Errorf("Can't classify %s: %w", job.Src, err)
+		return fmt.Errorf("can't classify %s: %w", job.Src, err)
 	}
 
 	fmt.Printf("\033[0;32m%s: found %d faces\033[0m\n", job.Src, len(recognizedFaces))
@@ -100,7 +100,7 @@ func processJob(
 
 	drawer, err := entity.NewDrawer(job.Src, fontPath)
 	if err != nil {
-		return fmt.Errorf("Can't create drawer for %s: %w", job.Src, err)
+		return fmt.Errorf("can't create drawer for %s: %w", job.Src, err)
 	}
 
 	for _, recognizedFace := range recognizedFaces {
@@ -108,7 +108,7 @@ func processJob(
 	}
 
 	if err := drawer.SaveImage(job.Dst); err != nil {
-		return fmt.Errorf("Can't save %s: %w", job.Dst, err)
+		return fmt.Errorf("can't save %s: %w", job.Dst, err)
 	}
 
 	fmt.Printf("\033[0;32mWrote %s\033[0m\n", job.Dst)

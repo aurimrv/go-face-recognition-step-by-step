@@ -104,12 +104,16 @@ func (d *DrawerImpl) loadFont(path string) error {
 	return nil
 }
 
-func (d *DrawerImpl) loadImage(path string) error {
+func (d *DrawerImpl) loadImage(path string) (err error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() {
+		if cerr := f.Close(); err == nil && cerr != nil {
+			err = cerr
+		}
+	}()
 	img, err := jpeg.Decode(f)
 
 	if err != nil {
@@ -131,9 +135,12 @@ func (d *DrawerImpl) SaveImage(path string) error {
 		return err
 	}
 
-	defer f.Close()
-
-	return jpeg.Encode(f, d.dst, nil)
+	encodeErr := jpeg.Encode(f, d.dst, nil)
+	closeErr := f.Close()
+	if encodeErr != nil {
+		return encodeErr
+	}
+	return closeErr
 }
 
 // NewDrawer loads the source JPEG and font. On failure it returns an error and
