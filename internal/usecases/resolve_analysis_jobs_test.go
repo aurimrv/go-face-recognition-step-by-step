@@ -228,6 +228,24 @@ func TestResolveAnalysisJobs_EmptyDirectory(t *testing.T) {
 	}
 }
 
+func TestResolveAnalysisJobs_WalkPermissionError(t *testing.T) {
+	// Covers: uncovered jobsFromDir walk error path
+	root := t.TempDir()
+	blocked := filepath.Join(root, "blocked")
+	if err := os.MkdirAll(blocked, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	mustTouch(t, filepath.Join(blocked, "x.jpg"))
+	if err := os.Chmod(blocked, 0o000); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(blocked, 0o755) })
+	_, err := ResolveAnalysisJobs([]string{root})
+	if err == nil {
+		t.Fatal("expected walk error")
+	}
+}
+
 func mustTouch(t *testing.T, path string) {
 	t.Helper()
 	if err := os.WriteFile(path, []byte("x"), 0o644); err != nil {

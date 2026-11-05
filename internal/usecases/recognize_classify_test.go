@@ -130,6 +130,48 @@ func TestClassify_NoFace(t *testing.T) {
 	}
 }
 
+func TestRecognize_NoFaceInImage(t *testing.T) {
+	// Covers: uncovered recognize nil face (RecognizeSingleFile returns nil)
+	rec, err := face.NewRecognizer(modelsDir(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rec.Close()
+	noFace := filepath.Join(t.TempDir(), "noface.jpg")
+	writeTinyJPEG(t, noFace)
+	persons := map[int]*entity.Person{
+		0: entity.NewPerson(0, "X", []string{noFace}),
+	}
+	if err := NewRecognizePersonsUseCase(rec).Execute(persons); err == nil {
+		t.Fatal("expected nil-face error")
+	}
+}
+
+func TestClassify_BelowThreshold(t *testing.T) {
+	// Covers: uncovered classify catID < 0 continue path
+	rec, err := face.NewRecognizer(modelsDir(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rec.Close()
+	persons := map[int]*entity.Person{
+		0: entity.NewPerson(0, "Tom-Cruise", []string{
+			personsFixture(t, "Tom-Cruise", "tom-01.jpg"),
+		}),
+	}
+	if err := NewRecognizePersonsUseCase(rec).Execute(persons); err != nil {
+		t.Fatal(err)
+	}
+	// Strict threshold so Megan does not match Tom samples.
+	got, err := NewClassifyPersonsUseCase(rec).Execute(imagesFixture(t, "Megan-Fox", "unknown-01.jpg"), 0.01)
+	if err != nil {
+		t.Fatalf("classify: %v", err)
+	}
+	if len(got) != 0 {
+		t.Fatalf("expected no matches below threshold, got %+v", got)
+	}
+}
+
 func writeTinyJPEG(t *testing.T, path string) {
 	t.Helper()
 	f, err := os.Create(path)

@@ -6,6 +6,7 @@ import (
 	"image/color"
 	"image/draw"
 	"image/jpeg"
+	"io"
 	"math"
 	"os"
 
@@ -13,6 +14,14 @@ import (
 	"golang.org/x/image/font"
 	"golang.org/x/image/math/fixed"
 )
+
+// Package-level seams for Close/Encode failure branches (defaults = real I/O).
+var jpegEncode = func(w io.Writer, m image.Image, o *jpeg.Options) error {
+	return jpeg.Encode(w, m, o)
+}
+var closeFile = func(f *os.File) error {
+	return f.Close()
+}
 
 type Drawer interface {
 	DrawFace(rectangle image.Rectangle, name string)
@@ -110,7 +119,7 @@ func (d *DrawerImpl) loadImage(path string) (err error) {
 		return err
 	}
 	defer func() {
-		if cerr := f.Close(); err == nil && cerr != nil {
+		if cerr := closeFile(f); err == nil && cerr != nil {
 			err = cerr
 		}
 	}()
@@ -135,8 +144,8 @@ func (d *DrawerImpl) SaveImage(path string) error {
 		return err
 	}
 
-	encodeErr := jpeg.Encode(f, d.dst, nil)
-	closeErr := f.Close()
+	encodeErr := jpegEncode(f, d.dst, nil)
+	closeErr := closeFile(f)
 	if encodeErr != nil {
 		return encodeErr
 	}

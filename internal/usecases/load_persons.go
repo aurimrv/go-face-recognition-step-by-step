@@ -16,6 +16,11 @@ type LoadPersonsUseCase interface {
 type LoadPersonsUseCaseImpl struct {
 }
 
+// Package-level seam for directory Close failure branch (default = real Close).
+var closePersonsDir = func(f *os.File) error {
+	return f.Close()
+}
+
 // This function `Execute` is the implementation of the `LoadPersonsUseCase` interface.
 // Execute reads people's images from a directory of folders.
 // The root directory must be provided as input. Each person should have a subfolder within the root directory
@@ -36,7 +41,7 @@ func (l *LoadPersonsUseCaseImpl) Execute(personsDir string) (map[int]*entity.Per
 		return nil, err
 	}
 	defer func() {
-		if cerr := dir.Close(); cerr != nil {
+		if cerr := closePersonsDir(dir); cerr != nil {
 			fmt.Println("Error on close persons directory:", cerr)
 		}
 	}()

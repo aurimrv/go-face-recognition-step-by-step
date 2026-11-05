@@ -24,16 +24,46 @@ coverage gaps. Do not strip existing EP/BVA comments.
 - User asks to finish coverage after a black-box EP/BVA pass
 - User names a file, package, threshold, or “whole project / 100%”
 
-## Hard exclusions
+## Hard exclusions (test-only)
 
-While executing this skill, **MUST NOT**:
+While executing this skill, **MUST NOT** create or modify **production code**
+(non-test `.go` under `cmd/` / `internal/` or other app sources)—including
+recognition pipeline edits, injecting test seams, changing control flow, or
+deleting hard-to-cover statements—nor model weights under `models/`, nor Docker
+native dependency installation.
 
-- Change the recognition pipeline implementation solely to raise coverage
-- Replace or edit model weights under `models/`
-- Change Docker native dependency installation (Dockerfile apt/CGO packages)
+**Allowed levers only:**
 
-Allowed levers: **tests** and **fixtures** (e.g. under `testdata/`). If a gap
-cannot be closed without violating exclusions, **report it as blocked**.
+- `*_test.go` (external `package x_test` or white-box `package x` in test files)
+- Test fixtures under `testdata/` or other clearly test-only fixture paths
+- Generated coverage artifacts (`coverage.out`, `coverage.html`) the skill
+  already documents
+
+If a gap cannot be closed with tests/fixtures alone, **stop-and-report**—do not
+edit production under this skill.
+
+## Stop-and-report (wait for the user)
+
+When blocked, **STOP** the coverage loop, report, and **wait for the user**.
+Do not silently introduce production seams or other production workarounds.
+
+Each blocker report **MUST** include:
+
+- **File** path
+- **Line** (or function/region)
+- **Reason** category: `unreachable` | `suspected bug` | `untestable design` |
+  `missing fixtures` | `would require production change`
+
+Examples aligned with the skill spec:
+
+- **WHEN** covering a statement would require editing non-test source to inject
+  a seam or alternate path **THEN** stop and report file/line/why
+  (`would require production change`).
+- **WHEN** uncovered statements cannot be executed via tests and fixtures alone
+  **THEN** report them as blocked (`unreachable` / `untestable design`).
+- **WHEN** closing a gap appears to require fixing or redesigning production
+  code **THEN** stop and report (`suspected bug`) rather than patching
+  production under this skill.
 
 ## Scope and threshold
 
@@ -88,17 +118,21 @@ leftovers even if below threshold.
    - Open/read `coverage.html` (red/uncovered regions), and/or
    - Use `go tool cover -func=coverage.out` for functions below 100%.
    - Read the corresponding source.
-4. **Add tests** — smallest cases that execute uncovered statements:
+4. **Add tests** — smallest cases that execute uncovered statements **using
+   only test/fixture edits**:
    - Prefer same-package tests (external `package x_test` or white-box `package x`
-     when unexported code must be reached).
+     when unexported code must be reached)—still only in `*_test.go`.
    - Assert observable results/errors/side effects; avoid assertion-free “touch
      only” tests when behavior can be checked.
    - Annotate new cases, e.g. `// Covers: uncovered path/file.go:L12-L40`.
    - Preserve existing EP/BVA catalog comments.
+   - If the next step would be a production edit (seam, control-flow change,
+     delete-to-cover), do **not** do it—treat as blocked (see Stop-and-report).
 5. **Re-measure** (same recipe).
 6. **Stop** when:
    - coverage for the scope ≥ threshold → report success, final %, artifact paths; or
-   - blocked gaps remain → list file:line (or function) + reason; or
+   - blocked gaps remain → list file:line (or function) + reason category, then
+     **wait for the user**; or
    - round cap hit → list remaining uncovered areas + last %.
 
 ## Relationship to black-box skill
@@ -116,5 +150,6 @@ Report:
 - Rounds executed
 - Final `go tool cover -func` summary (or overall %)
 - Paths to `coverage.out` / `coverage.html`
-- Tests/files added or updated
-- Any blocked uncovered statements
+- Tests/files added or updated (`*_test.go` / fixtures only)
+- Any blocked uncovered statements (file, line/region, reason category) and that
+  you are waiting on the user before any production change

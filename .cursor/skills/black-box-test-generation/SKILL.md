@@ -21,15 +21,49 @@ or mutation operators as the design method here.
   classification/recognition behavior with match-strength fixtures
 - User asks to improve the suite design before measuring `go test -cover` or `gomutants`
 
-## Hard exclusions
+## Hard exclusions (test-only)
 
-While executing this skill, **MUST NOT**:
+While executing this skill, **MUST NOT** create or modify **production code**
+(non-test `.go` under `cmd/` / `internal/` or other app sources), including
+recognition pipeline changes, test seams in production, model weights under
+`models/`, or Docker native dependency installation.
 
-- Change the recognition pipeline implementation to make tests pass
-- Replace or edit model weights under `models/`
-- Change Docker native dependency installation (Dockerfile apt/CGO packages)
+**Allowed edits only:**
 
-If expectations were wrong, fix the **test** or **fixtures** under EP/BVA rationale.
+- `*_test.go` (and test helpers that live in test files)
+- Test fixtures under `testdata/` or other clearly test-only fixture paths
+- Temp dirs created at test time
+
+If expectations were wrong, fix the **test** or **fixtures** under EP/BVA
+rationale—never production code under this skill.
+
+## Stop-and-report (wait for the user)
+
+If a problem prevents meeting the EP/BVA objective **without** changing
+production code, **STOP**. Do not silently edit production. Report and **wait
+for the user to decide**.
+
+Each blocker report **MUST** include:
+
+- **File** path
+- **Line** (or function/region)
+- **Reason** category: `unreachable` | `suspected bug` | `untestable design` |
+  `missing fixtures` | `would require production change`
+
+Examples aligned with the skill spec:
+
+- **WHEN** the skill would need to change production code to make an EP/BVA
+  objective achievable **THEN** stop and report file/line/why instead of editing
+  production code.
+- **WHEN** observable behavior looks incorrect or the unit cannot be exercised
+  meaningfully through its public API without production changes **THEN** stop
+  and report (`suspected bug` / `untestable design`).
+- **WHEN** required fixtures cannot be created or reused within test-only paths
+  **THEN** stop and report what is missing (`missing fixtures`) rather than
+  altering production assets or models.
+- **WHEN** correcting expectations or fixtures is insufficient and production
+  code would need to change **THEN** stop and report the blocker rather than
+  applying a production workaround under this skill.
 
 ## Black-box stance
 
@@ -89,8 +123,9 @@ See **Face and unknown image fixtures** below.
 go test ./path/to/package -count=1
 ```
 
-Adjust tests/fixtures within EP/BVA scope only. Optionally note coverage with
-`go test -cover` afterward; do not redesign the suite as white-box to chase %.
+Adjust tests/fixtures within EP/BVA scope only. If you would need production
+edits, follow **Stop-and-report**. Optionally note coverage with `go test
+-cover` afterward; do not redesign the suite as white-box to chase %.
 
 ## Comment contract (required)
 
@@ -153,8 +188,8 @@ Rules:
   **temp dirs** at test time. Prefer reusing/cropping teaching images from
   `persons/` / `images/` over inventing random pixels.
 - Document fixture **intent** and provenance in comments next to paths.
-- **MUST NOT** replace `models/` or alter Docker native deps / recognition
-  pipeline code to force a pass.
+- **MUST NOT** replace `models/`, alter Docker native deps, or change any
+  production code to force a pass; if fixtures are insufficient, stop-and-report.
 - Threshold BVA: aim for clearly above / near / clearly below with measured
   runs in the devcontainer—not theoretical pixel math alone.
 - If CGO/`go-face`/models are unavailable, generate the EP/BVA structure and
@@ -173,5 +208,6 @@ When finishing a generation pass, briefly report:
 
 - Unit under test
 - EP and boundary ids chosen
-- Files added/updated (`*_test.go`, `testdata/…`)
+- Files added/updated (`*_test.go`, `testdata/…` only)
 - `go test` result for the package
+- Any blockers (file, line/region, reason) — and that you are waiting on the user

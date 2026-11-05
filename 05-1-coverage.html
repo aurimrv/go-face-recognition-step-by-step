@@ -1,0 +1,746 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>cmd: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">github.com/andre-ols/go-face-recognition/cmd/main.go (100.0%)</option>
+				
+				<option value="file1">github.com/andre-ols/go-face-recognition/internal/entity/drawer.go (100.0%)</option>
+				
+				<option value="file2">github.com/andre-ols/go-face-recognition/internal/entity/person.go (100.0%)</option>
+				
+				<option value="file3">github.com/andre-ols/go-face-recognition/internal/usecases/classify_person.go (100.0%)</option>
+				
+				<option value="file4">github.com/andre-ols/go-face-recognition/internal/usecases/load_persons.go (100.0%)</option>
+				
+				<option value="file5">github.com/andre-ols/go-face-recognition/internal/usecases/recognize_persons.go (100.0%)</option>
+				
+				<option value="file6">github.com/andre-ols/go-face-recognition/internal/usecases/resolve_analysis_jobs.go (100.0%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package main
+
+import (
+        "fmt"
+        "log"
+        "os"
+        "path/filepath"
+        "time"
+
+        "github.com/Kagami/go-face"
+        "github.com/andre-ols/go-face-recognition/internal/entity"
+        "github.com/andre-ols/go-face-recognition/internal/usecases"
+)
+
+var (
+        modelsDir  = "models"
+        personsDir = "persons"
+        fontPath   = filepath.Join("fonts", "Roboto-Regular.ttf")
+)
+
+// This example shows the basic usage of the package: create an
+// recognizer, recognize faces, classify them using few known ones.
+func main() <span class="cov8" title="1">{
+
+        initialTime := time.Now()
+
+        defer func() </span><span class="cov8" title="1">{
+                fmt.Printf("\x1b[34mTotal time: %s\x1b[0m\n", time.Since(initialTime))
+        }</span>()
+
+        <span class="cov8" title="1">pathArgs := os.Args[1:]
+        failFast := len(pathArgs) == 0
+
+        jobs, err := usecases.ResolveAnalysisJobs(pathArgs)
+        if err != nil </span><span class="cov8" title="1">{
+                log.Fatalf("Can't resolve analysis jobs: %v", err)
+        }</span>
+
+        <span class="cov8" title="1">loadPersonsUseCase := usecases.NewLoadPersonsUseCase()
+
+        // Load persons from fs.
+        persons, err := loadPersonsUseCase.Execute(personsDir)
+        if err != nil </span><span class="cov8" title="1">{
+                log.Fatalf("Can't load persons: %v", err)
+        }</span>
+
+        <span class="cov8" title="1">initRecognizerTime := time.Now()
+
+        // Init the recognizer.
+        rec, err := face.NewRecognizer(modelsDir)
+        if err != nil </span><span class="cov8" title="1">{
+                log.Fatalf("Can't init face recognizer: %v", err)
+        }</span>
+        // Free the resources when you're finished.
+        <span class="cov8" title="1">defer rec.Close()
+
+        fmt.Println("Time to init recognizer: ", time.Since(initRecognizerTime))
+
+        // Recognize faces from a few images and assign them to persons.
+        recognizePersonsUseCase := usecases.NewRecognizePersonsUseCase(rec)
+
+        err = recognizePersonsUseCase.Execute(persons)
+
+        if err != nil </span><span class="cov8" title="1">{
+                log.Fatalf("Can't recognize persons: %v", err)
+        }</span>
+
+        <span class="cov8" title="1">classifyPersonUseCase := usecases.NewClassifyPersonsUseCase(rec)
+
+        var failed bool
+        for _, job := range jobs </span><span class="cov8" title="1">{
+                if err := processJob(job, persons, classifyPersonUseCase); err != nil </span><span class="cov8" title="1">{
+                        if failFast </span><span class="cov8" title="1">{
+                                log.Fatalf("%v", err)
+                        }</span>
+                        <span class="cov8" title="1">log.Printf("%v", err)
+                        failed = true</span>
+                }
+        }
+
+        <span class="cov8" title="1">if failed </span><span class="cov8" title="1">{
+                os.Exit(1)
+        }</span>
+}
+
+func processJob(
+        job usecases.Job,
+        persons map[int]*entity.Person,
+        classifyPersonUseCase usecases.ClassifyPersonsUseCase,
+) error <span class="cov8" title="1">{
+        recognizedFaces, err := classifyPersonUseCase.Execute(job.Src, 0.3)
+        if err != nil </span><span class="cov8" title="1">{
+                return fmt.Errorf("can't classify %s: %w", job.Src, err)
+        }</span>
+
+        <span class="cov8" title="1">fmt.Printf("\033[0;32m%s: found %d faces\033[0m\n", job.Src, len(recognizedFaces))
+        for _, recognizedFace := range recognizedFaces </span><span class="cov8" title="1">{
+                fmt.Printf("\033[0;32mPerson: %s\033[0m\n", persons[recognizedFace.ID].Name)
+        }</span>
+
+        <span class="cov8" title="1">drawer, err := entity.NewDrawer(job.Src, fontPath)
+        if err != nil </span><span class="cov8" title="1">{
+                return fmt.Errorf("can't create drawer for %s: %w", job.Src, err)
+        }</span>
+
+        <span class="cov8" title="1">for _, recognizedFace := range recognizedFaces </span><span class="cov8" title="1">{
+                drawer.DrawFace(recognizedFace.Face.Rectangle, persons[recognizedFace.ID].Name)
+        }</span>
+
+        <span class="cov8" title="1">if err := drawer.SaveImage(job.Dst); err != nil </span><span class="cov8" title="1">{
+                return fmt.Errorf("can't save %s: %w", job.Dst, err)
+        }</span>
+
+        <span class="cov8" title="1">fmt.Printf("\033[0;32mWrote %s\033[0m\n", job.Dst)
+        return nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package entity
+
+import (
+        "fmt"
+        "image"
+        "image/color"
+        "image/draw"
+        "image/jpeg"
+        "io"
+        "math"
+        "os"
+
+        "github.com/golang/freetype/truetype"
+        "golang.org/x/image/font"
+        "golang.org/x/image/math/fixed"
+)
+
+// Package-level seams for Close/Encode failure branches (defaults = real I/O).
+var jpegEncode = func(w io.Writer, m image.Image, o *jpeg.Options) error <span class="cov8" title="1">{
+        return jpeg.Encode(w, m, o)
+}</span>
+var closeFile = func(f *os.File) error <span class="cov8" title="1">{
+        return f.Close()
+}</span>
+
+type Drawer interface {
+        DrawFace(rectangle image.Rectangle, name string)
+        drawLine(img draw.Image, x0, y0, x1, y1 int, color color.RGBA)
+        drawName(txt string, x, y int, h float64)
+        loadImage(path string) error
+        loadFont(path string) error
+        SaveImage(path string) error
+}
+
+type DrawerImpl struct {
+        img   *image.Image
+        dst   *image.RGBA
+        font  *truetype.Font
+        color color.RGBA
+}
+
+func (d *DrawerImpl) DrawFace(rectangle image.Rectangle, name string) <span class="cov8" title="1">{
+        d.drawLine(d.dst, rectangle.Min.X, rectangle.Min.Y, rectangle.Max.X, rectangle.Min.Y, d.color)
+        d.drawLine(d.dst, rectangle.Max.X, rectangle.Min.Y, rectangle.Max.X, rectangle.Max.Y, d.color)
+        d.drawLine(d.dst, rectangle.Max.X, rectangle.Max.Y, rectangle.Min.X, rectangle.Max.Y, d.color)
+        d.drawLine(d.dst, rectangle.Min.X, rectangle.Max.Y, rectangle.Min.X, rectangle.Min.Y, d.color)
+
+        d.drawName(name, rectangle.Min.X, rectangle.Max.Y, float64(rectangle.Max.Y-rectangle.Min.Y))
+}</span>
+
+func (d *DrawerImpl) drawLine(img draw.Image, x0, y0, x1, y1 int, color color.RGBA) <span class="cov8" title="1">{
+        dx := math.Abs(float64(x1 - x0))
+        dy := -math.Abs(float64(y1 - y0))
+        sx := 1
+        sy := 1
+        if x0 &gt; x1 </span><span class="cov8" title="1">{
+                sx = -1
+        }</span>
+        <span class="cov8" title="1">if y0 &gt; y1 </span><span class="cov8" title="1">{
+                sy = -1
+        }</span>
+        <span class="cov8" title="1">err := dx + dy
+        for </span><span class="cov8" title="1">{
+                img.Set(x0, y0, color)
+                if x0 == x1 &amp;&amp; y0 == y1 </span><span class="cov8" title="1">{
+                        break</span>
+                }
+                <span class="cov8" title="1">e2 := 2 * err
+                if e2 &gt;= dy </span><span class="cov8" title="1">{
+                        err += dy
+                        x0 += sx
+                }</span>
+                <span class="cov8" title="1">if e2 &lt;= dx </span><span class="cov8" title="1">{
+                        err += dx
+                        y0 += sy
+                }</span>
+        }
+}
+
+func (d *DrawerImpl) drawName(txt string, x, y int, h float64) <span class="cov8" title="1">{
+
+        // Define the font size as a fraction of the face height
+        fontSize := h / 3
+
+        dr := &amp;font.Drawer{
+                Dst:  d.dst,
+                Src:  image.NewUniform(d.color),
+                Face: truetype.NewFace(d.font, &amp;truetype.Options{Size: fontSize, Hinting: font.HintingNone, DPI: 72.0}),
+        }
+
+        dr.Dot = fixed.Point26_6{
+                X: fixed.I(x),
+                Y: fixed.I(y + int(fontSize)),
+        }
+
+        dr.DrawString(txt)
+}</span>
+
+func (d *DrawerImpl) loadFont(path string) error <span class="cov8" title="1">{
+        fontBytes, err := os.ReadFile(path)
+        if err != nil </span><span class="cov8" title="1">{
+                return err
+        }</span>
+
+        <span class="cov8" title="1">f, err := truetype.Parse(fontBytes)
+
+        if err != nil </span><span class="cov8" title="1">{
+                return err
+        }</span>
+
+        <span class="cov8" title="1">d.font = f
+
+        return nil</span>
+}
+
+func (d *DrawerImpl) loadImage(path string) (err error) <span class="cov8" title="1">{
+        f, err := os.Open(path)
+        if err != nil </span><span class="cov8" title="1">{
+                return err
+        }</span>
+        <span class="cov8" title="1">defer func() </span><span class="cov8" title="1">{
+                if cerr := closeFile(f); err == nil &amp;&amp; cerr != nil </span><span class="cov8" title="1">{
+                        err = cerr
+                }</span>
+        }()
+        <span class="cov8" title="1">img, err := jpeg.Decode(f)
+
+        if err != nil </span><span class="cov8" title="1">{
+                return err
+        }</span>
+
+        <span class="cov8" title="1">d.img = &amp;img
+
+        return nil</span>
+
+}
+
+func (d *DrawerImpl) SaveImage(path string) error <span class="cov8" title="1">{
+        if d.dst == nil </span><span class="cov8" title="1">{
+                return fmt.Errorf("no image loaded")
+        }</span>
+        <span class="cov8" title="1">f, err := os.Create(path)
+        if err != nil </span><span class="cov8" title="1">{
+                return err
+        }</span>
+
+        <span class="cov8" title="1">encodeErr := jpegEncode(f, d.dst, nil)
+        closeErr := closeFile(f)
+        if encodeErr != nil </span><span class="cov8" title="1">{
+                return encodeErr
+        }</span>
+        <span class="cov8" title="1">return closeErr</span>
+}
+
+// NewDrawer loads the source JPEG and font. On failure it returns an error and
+// does not leave a drawer that would panic on draw or save.
+func NewDrawer(imagePath, fontPath string) (Drawer, error) <span class="cov8" title="1">{
+        drawer := &amp;DrawerImpl{}
+        if err := drawer.loadImage(imagePath); err != nil </span><span class="cov8" title="1">{
+                return nil, fmt.Errorf("load image %q: %w", imagePath, err)
+        }</span>
+        <span class="cov8" title="1">if err := drawer.loadFont(fontPath); err != nil </span><span class="cov8" title="1">{
+                return nil, fmt.Errorf("load font %q: %w", fontPath, err)
+        }</span>
+        <span class="cov8" title="1">drawer.dst = image.NewRGBA((*drawer.img).Bounds())
+        draw.Draw(drawer.dst, drawer.dst.Bounds(), (*drawer.img), (*drawer.img).Bounds().Min, draw.Src)
+
+        drawer.color = color.RGBA{0, 255, 0, 255}
+
+        return drawer, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package entity
+
+type Person struct {
+        ID         int
+        Name       string
+        ImagesPath []string
+}
+
+func NewPerson(id int, name string, imagesPath []string) *Person <span class="cov8" title="1">{
+        return &amp;Person{
+                ID:         id,
+                Name:       name,
+                ImagesPath: imagesPath,
+        }
+}</span>
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">package usecases
+
+import (
+        "fmt"
+        "time"
+
+        "github.com/Kagami/go-face"
+)
+
+type ClassifyPersonsUseCase interface {
+        Execute(unkImagePath string, threshold float32) ([]*RecognizedFaces, error)
+}
+
+type ClassifyPersonsUseCaseImpl struct {
+        rec *face.Recognizer
+}
+
+type RecognizedFaces struct {
+        ID   int
+        Face *face.Face
+}
+
+// This function `Execute` is a method of the `ClassifyPersonsUseCaseImpl` struct that implements the
+// `ClassifyPersonsUseCase` interface.
+// Execute performs the recognition of unknown faces against known faces and classifies them.
+// The unknown image path and a threshold for classification confidence must be provided as input.
+// This function recognizes faces in the unknown image and classifies them against known faces.
+// It returns a slice of RecognizedFaces, each containing the ID of the recognized person and the recognized face,
+// and an error if the recognition process fails.
+// It is important to note that each photo should contain only one face, which is the face of the person.
+// Also, it's ideal for each person to have more than one photo to improve recognition accuracy.
+func (c *ClassifyPersonsUseCaseImpl) Execute(unkImagePath string, threshold float32) ([]*RecognizedFaces, error) <span class="cov8" title="1">{
+        unknownFacesTime := time.Now()
+
+        defer func() </span><span class="cov8" title="1">{
+                fmt.Println("Time to recognize unknown faces: ", time.Since(unknownFacesTime))
+        }</span>()
+
+        <span class="cov8" title="1">unkFaces, err := c.rec.RecognizeFile(unkImagePath)
+
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, fmt.Errorf("can't recognize: %v", err)
+        }</span>
+
+        <span class="cov8" title="1">if len(unkFaces) == 0 </span><span class="cov8" title="1">{
+                return nil, fmt.Errorf("unable to recognize people in the image")
+        }</span>
+
+        // Classify the unknown faces
+        <span class="cov8" title="1">knowFaces := []*RecognizedFaces{}
+        for _, unkFace := range unkFaces </span><span class="cov8" title="1">{
+                catID := c.rec.ClassifyThreshold(unkFace.Descriptor, threshold)
+
+                if catID &lt; 0 </span><span class="cov8" title="1">{
+                        continue</span>
+                }
+                <span class="cov8" title="1">knowFaces = append(knowFaces, &amp;RecognizedFaces{ID: int(catID), Face: &amp;unkFace})</span>
+        }
+
+        <span class="cov8" title="1">return knowFaces, nil</span>
+}
+
+func NewClassifyPersonsUseCase(rec *face.Recognizer) ClassifyPersonsUseCase <span class="cov8" title="1">{
+        return &amp;ClassifyPersonsUseCaseImpl{rec: rec}
+}</span>
+</pre>
+		
+		<pre class="file" id="file4" style="display: none">package usecases
+
+import (
+        "fmt"
+        "os"
+        "path/filepath"
+        "time"
+
+        "github.com/andre-ols/go-face-recognition/internal/entity"
+)
+
+type LoadPersonsUseCase interface {
+        Execute(personsDir string) (map[int]*entity.Person, error)
+}
+
+type LoadPersonsUseCaseImpl struct {
+}
+
+// Package-level seam for directory Close failure branch (default = real Close).
+var closePersonsDir = func(f *os.File) error <span class="cov8" title="1">{
+        return f.Close()
+}</span>
+
+// This function `Execute` is the implementation of the `LoadPersonsUseCase` interface.
+// Execute reads people's images from a directory of folders.
+// The root directory must be provided as input. Each person should have a subfolder within the root directory
+// with the person's name being the folder name. Inside the folder should contain photos of the person.
+// This function will dynamically load the persons and relate them to their photos.
+func (l *LoadPersonsUseCaseImpl) Execute(personsDir string) (map[int]*entity.Person, error) <span class="cov8" title="1">{
+
+        loadPersonsTime := time.Now()
+
+        defer func() </span><span class="cov8" title="1">{
+                fmt.Println("Time to load persons: ", time.Since(loadPersonsTime))
+        }</span>()
+
+        // Open persons directory
+        <span class="cov8" title="1">dir, err := os.Open(personsDir)
+        if err != nil </span><span class="cov8" title="1">{
+                fmt.Println("Error on open persons directory:", err)
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">defer func() </span><span class="cov8" title="1">{
+                if cerr := closePersonsDir(dir); cerr != nil </span><span class="cov8" title="1">{
+                        fmt.Println("Error on close persons directory:", cerr)
+                }</span>
+        }()
+
+        // Read the directory content
+        <span class="cov8" title="1">subFolders, err := dir.Readdir(-1)
+        if err != nil </span><span class="cov8" title="1">{
+                fmt.Println("Error on read persons directory:", err)
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">persons := map[int]*entity.Person{}
+
+        for index, subFolder := range subFolders </span><span class="cov8" title="1">{
+                if !subFolder.IsDir() </span><span class="cov8" title="1">{
+                        continue</span>
+                }
+
+                <span class="cov8" title="1">personName := subFolder.Name()
+
+                personDir := filepath.Join(personsDir, personName)
+
+                files, err := os.ReadDir(personDir)
+                if err != nil </span><span class="cov8" title="1">{
+                        fmt.Printf("Error on read person directory: %s\n", personDir)
+                        return nil, err
+                }</span>
+
+                <span class="cov8" title="1">var imagesPath []string
+                for _, file := range files </span><span class="cov8" title="1">{
+                        imagesPath = append(imagesPath, filepath.Join(personDir, file.Name()))
+                }</span>
+
+                <span class="cov8" title="1">persons[index] = entity.NewPerson(index, personName, imagesPath)</span>
+
+        }
+
+        <span class="cov8" title="1">return persons, nil</span>
+}
+
+func NewLoadPersonsUseCase() LoadPersonsUseCase <span class="cov8" title="1">{
+        return &amp;LoadPersonsUseCaseImpl{}
+}</span>
+</pre>
+		
+		<pre class="file" id="file5" style="display: none">package usecases
+
+import (
+        "fmt"
+        "time"
+
+        "github.com/Kagami/go-face"
+        "github.com/andre-ols/go-face-recognition/internal/entity"
+)
+
+type RecognizePersonsUseCase interface {
+        Execute(persons map[int]*entity.Person) error
+}
+
+type RecognizePersonsUseCaseImpl struct {
+        rec *face.Recognizer
+}
+
+// This function `Execute` in the `RecognizePersonsUseCaseImpl` struct is responsible for recognizing
+// faces of persons based on the images provided in the `persons` map.
+// Execute performs recognition of known faces for the provided persons.
+// Each photo should contain only one face, which is the face of the person.
+// It is ideal for each person to have more than one photo to improve recognition.
+func (r *RecognizePersonsUseCaseImpl) Execute(persons map[int]*entity.Person) error <span class="cov8" title="1">{
+
+        knowFacesTime := time.Now()
+
+        defer func() </span><span class="cov8" title="1">{
+                fmt.Println("Time to recognize known faces: ", time.Since(knowFacesTime))
+        }</span>()
+
+        <span class="cov8" title="1">faces := []face.Descriptor{}
+        categories := []int32{}
+
+        for _, p := range persons </span><span class="cov8" title="1">{
+                for _, imagePath := range p.ImagesPath </span><span class="cov8" title="1">{
+                        face, err := r.rec.RecognizeSingleFile(imagePath)
+                        if err != nil </span><span class="cov8" title="1">{
+                                return fmt.Errorf("can't recognize: %v", err)
+                        }</span>
+                        <span class="cov8" title="1">if face == nil </span><span class="cov8" title="1">{
+                                return fmt.Errorf("unable to recognize people in the image")
+                        }</span>
+                        <span class="cov8" title="1">faces = append(faces, face.Descriptor)
+                        categories = append(categories, int32(p.ID))</span>
+                }
+        }
+
+        // Pass the samples to the recognizer.
+        <span class="cov8" title="1">r.rec.SetSamples(faces, categories)
+
+        return nil</span>
+}
+
+func NewRecognizePersonsUseCase(rec *face.Recognizer) RecognizePersonsUseCase <span class="cov8" title="1">{
+        return &amp;RecognizePersonsUseCaseImpl{rec: rec}
+}</span>
+</pre>
+		
+		<pre class="file" id="file6" style="display: none">package usecases
+
+import (
+        "fmt"
+        "io/fs"
+        "os"
+        "path/filepath"
+        "strings"
+)
+
+// Job is a single image analysis unit: source path and destination output path.
+type Job struct {
+        Src string
+        Dst string
+}
+
+const (
+        defaultImagesDir = "images"
+        defaultUnknown   = "unknown.jpg"
+        defaultResult    = "result.jpg"
+)
+
+// ResolveAnalysisJobs maps CLI path arguments to analysis jobs.
+// With no args, it returns the default unknown.jpg → result.jpg job.
+// File args and JPEG files under directory args become beside-source result_&lt;stem&gt;.jpg jobs.
+// Previously generated result images are skipped. Non-JPEG files are omitted from directory
+// walks; an explicit non-JPEG file still becomes a job so the batch loop can fail that job.
+func ResolveAnalysisJobs(args []string) ([]Job, error) <span class="cov8" title="1">{
+        if len(args) == 0 </span><span class="cov8" title="1">{
+                src := filepath.Join(defaultImagesDir, defaultUnknown)
+                dst := filepath.Join(defaultImagesDir, defaultResult)
+                return []Job{{Src: src, Dst: dst}}, nil
+        }</span>
+
+        <span class="cov8" title="1">var jobs []Job
+        for _, arg := range args </span><span class="cov8" title="1">{
+                info, err := os.Stat(arg)
+                if err != nil </span><span class="cov8" title="1">{
+                        return nil, fmt.Errorf("stat %q: %w", arg, err)
+                }</span>
+                <span class="cov8" title="1">if info.IsDir() </span><span class="cov8" title="1">{
+                        dirJobs, err := jobsFromDir(arg)
+                        if err != nil </span><span class="cov8" title="1">{
+                                return nil, err
+                        }</span>
+                        <span class="cov8" title="1">jobs = append(jobs, dirJobs...)
+                        continue</span>
+                }
+                <span class="cov8" title="1">if isResultOutput(filepath.Base(arg)) </span><span class="cov8" title="1">{
+                        continue</span>
+                }
+                <span class="cov8" title="1">jobs = append(jobs, Job{Src: arg, Dst: resultPathFor(arg)})</span>
+        }
+
+        <span class="cov8" title="1">if len(jobs) == 0 </span><span class="cov8" title="1">{
+                return nil, fmt.Errorf("no analysis jobs resolved from arguments")
+        }</span>
+        <span class="cov8" title="1">return jobs, nil</span>
+}
+
+func jobsFromDir(root string) ([]Job, error) <span class="cov8" title="1">{
+        var jobs []Job
+        err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error </span><span class="cov8" title="1">{
+                if err != nil </span><span class="cov8" title="1">{
+                        return err
+                }</span>
+                <span class="cov8" title="1">if d.IsDir() </span><span class="cov8" title="1">{
+                        return nil
+                }</span>
+                <span class="cov8" title="1">base := d.Name()
+                if isResultOutput(base) </span><span class="cov8" title="1">{
+                        return nil
+                }</span>
+                <span class="cov8" title="1">if !isJPEG(path) </span><span class="cov8" title="1">{
+                        return nil
+                }</span>
+                <span class="cov8" title="1">jobs = append(jobs, Job{Src: path, Dst: resultPathFor(path)})
+                return nil</span>
+        })
+        <span class="cov8" title="1">if err != nil </span><span class="cov8" title="1">{
+                return nil, fmt.Errorf("walk %q: %w", root, err)
+        }</span>
+        <span class="cov8" title="1">return jobs, nil</span>
+}
+
+func resultPathFor(src string) string <span class="cov8" title="1">{
+        dir := filepath.Dir(src)
+        base := filepath.Base(src)
+        ext := filepath.Ext(base)
+        stem := strings.TrimSuffix(base, ext)
+        return filepath.Join(dir, "result_"+stem+".jpg")
+}</span>
+
+func isJPEG(path string) bool <span class="cov8" title="1">{
+        ext := strings.ToLower(filepath.Ext(path))
+        return ext == ".jpg" || ext == ".jpeg"
+}</span>
+
+func isResultOutput(base string) bool <span class="cov8" title="1">{
+        if base == "result.jpg" </span><span class="cov8" title="1">{
+                return true
+        }</span>
+        <span class="cov8" title="1">if !strings.HasPrefix(base, "result_") </span><span class="cov8" title="1">{
+                return false
+        }</span>
+        <span class="cov8" title="1">ext := strings.ToLower(filepath.Ext(base))
+        return ext == ".jpg" || ext == ".jpeg"</span>
+}
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>

@@ -50,3 +50,54 @@ func TestLoadPersons_MissingDir(t *testing.T) {
 		t.Fatal("expected error for missing persons dir")
 	}
 }
+
+func TestLoadPersons_RootIsFile(t *testing.T) {
+	// Covers: uncovered Readdir error when personsDir is a file
+	root := filepath.Join(t.TempDir(), "not-a-dir")
+	mustTouch(t, root)
+	_, err := NewLoadPersonsUseCase().Execute(root)
+	if err == nil {
+		t.Fatal("expected Readdir error")
+	}
+}
+
+func TestLoadPersons_UnreadablePersonDir(t *testing.T) {
+	// Covers: uncovered ReadDir error on person subdirectory
+	root := t.TempDir()
+	p := filepath.Join(root, "Locked")
+	if err := os.MkdirAll(p, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	mustTouch(t, filepath.Join(p, "a.jpg"))
+	if err := os.Chmod(p, 0o000); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(p, 0o755) })
+	_, err := NewLoadPersonsUseCase().Execute(root)
+	if err == nil {
+		t.Fatal("expected ReadDir error")
+	}
+}
+
+func TestLoadPersons_CloseDirError(t *testing.T) {
+	// Covers: load_persons.go closePersonsDir error branch (logged, non-fatal)
+	root := t.TempDir()
+	p := filepath.Join(root, "Alice")
+	if err := os.MkdirAll(p, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	mustTouch(t, filepath.Join(p, "a.jpg"))
+	old := closePersonsDir
+	closePersonsDir = func(f *os.File) error {
+		_ = f.Close()
+		return os.ErrClosed
+	}
+	t.Cleanup(func() { closePersonsDir = old })
+	persons, err := NewLoadPersonsUseCase().Execute(root)
+	if err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+	if len(persons) != 1 {
+		t.Fatalf("got %d persons, want 1", len(persons))
+	}
+}
