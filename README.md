@@ -46,11 +46,16 @@ This project dynamically loads people from within the `persons/` directory. Each
 
 ### Recognition of Faces
 
-After loading the people, the software reads an image from the `images/` directory. By default, it searches for an image named `unknown.jpg`. It then recognizes the faces in the image based on the provided people. The input image can contain multiple people, and the software attempts to recognize all of them.
+After loading the people, the software analyzes one or more JPEG images. With no path arguments it uses `images/unknown.jpg`. You can also pass specific image files and/or directories; directories are walked recursively (including subfolders). Only JPEG files (`.jpg` / `.jpeg`) are selected from directories. Previously generated outputs (`result.jpg` and `result_*.jpg`) are skipped so a second run does not re-analyze them. Each input image can contain multiple people, and the software attempts to recognize all of them. The face recognizer and known-person samples are loaded once per run and reused for every image.
 
 ### Output Generation
 
-The output of the system is a new image with the faces marked and the name of each identified person. The generated image will be saved in the `images/` directory with the name `result.jpg`.
+The output for each image is a new JPEG with faces marked and the name of each identified person. Naming:
+
+- No arguments: `images/result.jpg`
+- Explicit files or files found under a directory: `result_<stem>.jpg` written beside the source (for example `images/a.jpg` → `images/result_a.jpg`)
+
+Do not store original photos under names starting with `result_`; those basenames are reserved for tool output.
 
 ### Capabilities
 
@@ -76,13 +81,25 @@ cd go-face-recognition
 docker compose up --build -d
 ```
 
-4. Run the Docker container:
+4. Run facial recognition (examples):
 
 ```bash
-docker exec go-face-recognition go run cmd/main.go
+# Default: images/unknown.jpg → images/result.jpg
+go run ./cmd
+
+# Specific images → result_<stem>.jpg beside each source
+go run ./cmd images/a.jpg images/b.jpg
+
+# Album folder (recursive) → result_<stem>.jpg beside each JPEG, including subfolders
+go run ./cmd path/to/album/
 ```
 
-This will execute the project inside the Docker container and demonstrate facial recognition.
+Inside Docker the same forms work, for example:
+
+```bash
+docker exec go-face-recognition go run ./cmd
+docker exec go-face-recognition go run ./cmd images/Megan-Fox/
+```
 
 ## Project Structure
 
@@ -149,7 +166,7 @@ go-face-recognition/
 └── README.md
 ```
 
-The `persons/` directory contains one sub-folder per known person (Denzel Washington, Kate Winslet, Megan Fox and Tom Cruise), with images of that person used to build the model. The `images/` directory contains the input images: `unknown.jpg` is the default input, and each person's sub-folder holds extra test images of that person that are not used for training. The output image, `result.jpg`, is generated in `images/` when the program runs. The `fonts/` directory contains the font used to write names on the output image. The `models/` directory contains the pre-trained dlib models for face detection, landmarks, recognition, age and gender. The `internal/` directory contains the core logic of the system, including entities and use cases. The `cmd/` directory contains the main entry point of the system.
+The `persons/` directory contains one sub-folder per known person (Denzel Washington, Kate Winslet, Megan Fox and Tom Cruise), with images of that person used to build the model. The `images/` directory contains the input images: `unknown.jpg` is the default input, and each person's sub-folder holds extra test images of that person that are not used for training. With no arguments the output is `images/result.jpg`; with file or directory arguments each output is `result_<stem>.jpg` beside its source. The `fonts/` directory contains the font used to write names on the output image. The `models/` directory contains the pre-trained dlib models for face detection, landmarks, recognition, age and gender. The `internal/` directory contains the core logic of the system, including entities and use cases. The `cmd/` directory contains the main entry point of the system.
 
 ## Contributing
 

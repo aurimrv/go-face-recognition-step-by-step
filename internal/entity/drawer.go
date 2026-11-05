@@ -1,6 +1,7 @@
 package entity
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
@@ -122,6 +123,9 @@ func (d *DrawerImpl) loadImage(path string) error {
 }
 
 func (d *DrawerImpl) SaveImage(path string) error {
+	if d.dst == nil {
+		return fmt.Errorf("no image loaded")
+	}
 	f, err := os.Create(path)
 	if err != nil {
 		return err
@@ -132,14 +136,20 @@ func (d *DrawerImpl) SaveImage(path string) error {
 	return jpeg.Encode(f, d.dst, nil)
 }
 
-func NewDrawer(imagePath, fontPath string) Drawer {
+// NewDrawer loads the source JPEG and font. On failure it returns an error and
+// does not leave a drawer that would panic on draw or save.
+func NewDrawer(imagePath, fontPath string) (Drawer, error) {
 	drawer := &DrawerImpl{}
-	drawer.loadImage(imagePath)
-	drawer.loadFont(fontPath)
+	if err := drawer.loadImage(imagePath); err != nil {
+		return nil, fmt.Errorf("load image %q: %w", imagePath, err)
+	}
+	if err := drawer.loadFont(fontPath); err != nil {
+		return nil, fmt.Errorf("load font %q: %w", fontPath, err)
+	}
 	drawer.dst = image.NewRGBA((*drawer.img).Bounds())
 	draw.Draw(drawer.dst, drawer.dst.Bounds(), (*drawer.img), (*drawer.img).Bounds().Min, draw.Src)
 
 	drawer.color = color.RGBA{0, 255, 0, 255}
 
-	return drawer
+	return drawer, nil
 }
