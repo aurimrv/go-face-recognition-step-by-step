@@ -1,0 +1,174 @@
+# Source of truth for TESTS_EXPLAINED.md (do not treat the Markdown as primary).
+# Skills upsert cases, then run: python3 scripts/render-tests-explained.py
+#
+# Required fields per case:
+#   id, test, test_file, skill, objective, system_under_test, production_refs
+# Optional: partitions, boundaries, covers, kills_mutant, notes, updated_at
+#
+# id format: {go_package_import_path}::{TestFunction}
+
+version: 1
+module: github.com/andre-ols/go-face-recognition
+
+cases:
+  - id: github.com/andre-ols/go-face-recognition/internal/usecases::TestResolveAnalysisJobs_EmptyArgs
+    test: TestResolveAnalysisJobs_EmptyArgs
+    test_file: internal/usecases/resolve_analysis_jobs_test.go
+    skill: black-box-test-generation
+    objective: >
+      Verify empty CLI args resolve to the default job
+      images/unknown.jpg → images/result.jpg (EP-empty).
+    system_under_test: internal/usecases.ResolveAnalysisJobs — empty-args default job
+    production_refs:
+      - internal/usecases/resolve_analysis_jobs.go
+    partitions: [EP-empty]
+    updated_at: "2026-11-05"
+
+  - id: github.com/andre-ols/go-face-recognition/internal/entity::TestNewPerson
+    test: TestNewPerson
+    test_file: internal/entity/person_test.go
+    skill: white-box-test-generation
+    objective: >
+      Cover NewPerson constructor fields (ID, Name, ImagesPath) previously
+      uncovered under statement-coverage drive.
+    system_under_test: internal/entity.NewPerson
+    production_refs:
+      - internal/entity/person.go
+    covers: "uncovered person.go NewPerson"
+    updated_at: "2026-11-05"
+
+  - id: github.com/andre-ols/go-face-recognition/internal/entity::TestDrawFace_TopEdgePixels
+    test: TestDrawFace_TopEdgePixels
+    test_file: internal/entity/drawer_test.go
+    skill: mutation-test-generation
+    objective: >
+      Assert top-edge rectangle pixels are drawer green so STATEMENT_REMOVE of
+      DrawFace's first drawLine (drawer.go:43) is killed.
+    system_under_test: internal/entity.DrawerImpl.DrawFace top edge
+    production_refs:
+      - internal/entity/drawer.go
+    kills_mutant: "entity/drawer.go:43 STATEMENT_REMOVE top drawLine"
+    updated_at: "2026-11-05"
+
+  - id: github.com/andre-ols/go-face-recognition/internal/usecases::TestLoadPersons_CloseDirError
+    test: TestLoadPersons_CloseDirError
+    test_file: internal/usecases/load_persons_test.go
+    skill: white-box-test-generation
+    objective: >
+      Force closePersonsDir seam failure after a successful load to cover the
+      non-fatal directory close-error log branch.
+    system_under_test: internal/usecases.LoadPersonsUseCaseImpl.Execute close path
+    production_refs:
+      - internal/usecases/load_persons.go
+    covers: "load_persons.go closePersonsDir error branch"
+    updated_at: "2026-11-05"
+
+  - id: github.com/andre-ols/go-face-recognition/internal/usecases::TestRecognize_GalleryOK
+    test: TestRecognize_GalleryOK
+    test_file: internal/usecases/recognize_classify_test.go
+    skill: black-box-test-generation
+    objective: >
+      Train Tom+Megan gallery from person JPEGs succeeds (EP-gallery-ok).
+    system_under_test: RecognizePersonsUseCase.Execute with valid face samples
+    production_refs:
+      - internal/usecases/recognize_persons.go
+    partitions: [EP-gallery-ok]
+    updated_at: "2026-11-05"
+
+  - id: github.com/andre-ols/go-face-recognition/internal/usecases::TestRecognize_BadImage
+    test: TestRecognize_BadImage
+    test_file: internal/usecases/recognize_classify_test.go
+    skill: black-box-test-generation
+    objective: Corrupt gallery JPEG yields recognize error (EP-gallery-bad).
+    system_under_test: RecognizePersonsUseCase.Execute invalid image path
+    production_refs:
+      - internal/usecases/recognize_persons.go
+    partitions: [EP-gallery-bad]
+    updated_at: "2026-11-05"
+
+  - id: github.com/andre-ols/go-face-recognition/internal/usecases::TestRecognize_NoFaceInImage
+    test: TestRecognize_NoFaceInImage
+    test_file: internal/usecases/recognize_classify_test.go
+    skill: black-box-test-generation
+    objective: Gallery JPEG with no detectable face yields error (EP-gallery-noface).
+    system_under_test: RecognizePersonsUseCase.Execute no-face JPEG
+    production_refs:
+      - internal/usecases/recognize_persons.go
+    partitions: [EP-gallery-noface]
+    updated_at: "2026-11-05"
+
+  - id: github.com/andre-ols/go-face-recognition/internal/usecases::TestClassify_StrongMatchTypicalThreshold
+    test: TestClassify_StrongMatchTypicalThreshold
+    test_file: internal/usecases/recognize_classify_test.go
+    skill: black-box-test-generation
+    objective: >
+      Megan unknown against Tom+Megan gallery at threshold 0.3 returns Megan
+      (EP-strong-match, B-threshold-typical).
+    system_under_test: ClassifyPersonsUseCase.Execute match strength @ 0.3
+    production_refs:
+      - internal/usecases/classify_person.go
+    partitions: [EP-strong-match]
+    boundaries: [B-threshold-typical]
+    updated_at: "2026-11-05"
+
+  - id: github.com/andre-ols/go-face-recognition/internal/usecases::TestClassify_StrongMatchLooseThreshold
+    test: TestClassify_StrongMatchLooseThreshold
+    test_file: internal/usecases/recognize_classify_test.go
+    skill: black-box-test-generation
+    objective: >
+      Same Megan unknown still yields a Megan hit at threshold 0.6
+      (EP-strong-match, B-threshold-loose).
+    system_under_test: ClassifyPersonsUseCase.Execute match strength @ 0.6
+    production_refs:
+      - internal/usecases/classify_person.go
+    partitions: [EP-strong-match]
+    boundaries: [B-threshold-loose]
+    updated_at: "2026-11-05"
+
+  - id: github.com/andre-ols/go-face-recognition/internal/usecases::TestClassify_CrossPersonNoMatch
+    test: TestClassify_CrossPersonNoMatch
+    test_file: internal/usecases/recognize_classify_test.go
+    skill: black-box-test-generation
+    objective: >
+      Megan unknown vs Tom-only gallery at 0.3 returns zero hits
+      (EP-cross-nomatch).
+    system_under_test: ClassifyPersonsUseCase.Execute cross-identity non-match
+    production_refs:
+      - internal/usecases/classify_person.go
+    partitions: [EP-cross-nomatch]
+    updated_at: "2026-11-05"
+
+  - id: github.com/andre-ols/go-face-recognition/internal/usecases::TestClassify_StrictThresholdNoHit
+    test: TestClassify_StrictThresholdNoHit
+    test_file: internal/usecases/recognize_classify_test.go
+    skill: black-box-test-generation
+    objective: >
+      Even a true Megan unknown yields zero hits at threshold 0.01
+      (B-threshold-strict).
+    system_under_test: ClassifyPersonsUseCase.Execute strict threshold edge
+    production_refs:
+      - internal/usecases/classify_person.go
+    boundaries: [B-threshold-strict]
+    updated_at: "2026-11-05"
+
+  - id: github.com/andre-ols/go-face-recognition/internal/usecases::TestClassify_MissingFile
+    test: TestClassify_MissingFile
+    test_file: internal/usecases/recognize_classify_test.go
+    skill: black-box-test-generation
+    objective: Missing unknown image path returns classify error (EP-missing-unk).
+    system_under_test: ClassifyPersonsUseCase.Execute missing file
+    production_refs:
+      - internal/usecases/classify_person.go
+    partitions: [EP-missing-unk]
+    updated_at: "2026-11-05"
+
+  - id: github.com/andre-ols/go-face-recognition/internal/usecases::TestClassify_NoFace
+    test: TestClassify_NoFace
+    test_file: internal/usecases/recognize_classify_test.go
+    skill: black-box-test-generation
+    objective: Valid JPEG with no face returns classify error (EP-noface-unk).
+    system_under_test: ClassifyPersonsUseCase.Execute no-face unknown
+    production_refs:
+      - internal/usecases/classify_person.go
+    partitions: [EP-noface-unk]
+    updated_at: "2026-11-05"

@@ -202,6 +202,28 @@ Rules:
 - **CGO + models (devcontainer):** classification/recognition with threshold and
   image-content partitions; slower; use fixtures above.
 
+## Tests explained registry (required)
+
+After creating or **materially changing** any test case, keep human/machine
+traceability current:
+
+1. **Upsert** `tests-explained.yaml` (repo root) for each touched test:
+   - `id`: `{module_import_path}::{TestFunction}`  
+     (module = `github.com/andre-ols/go-face-recognition`)
+   - `test`, `test_file`, `skill: black-box-test-generation`
+   - `objective` — why this case exists (EP/BVA intent)
+   - `system_under_test` — package/symbol/behavior
+   - `production_refs` — production file paths exercised
+   - Optional: `partitions`, `boundaries`, `updated_at`
+2. If you **delete** a test you registered, remove its YAML entry.
+3. **Regenerate** Markdown (do not hand-edit as primary store):
+
+```bash
+python3 scripts/render-tests-explained.py
+```
+
+`TESTS_EXPLAINED.md` is the human projection of the YAML.
+
 ## Output expectations
 
 When finishing a generation pass, briefly report:
@@ -209,5 +231,6 @@ When finishing a generation pass, briefly report:
 - Unit under test
 - EP and boundary ids chosen
 - Files added/updated (`*_test.go`, `testdata/…` only)
+- Confirmation that `tests-explained.yaml` + `TESTS_EXPLAINED.md` were updated
 - `go test` result for the package
 - Any blockers (file, line/region, reason) — and that you are waiting on the user

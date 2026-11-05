@@ -142,6 +142,28 @@ leftovers even if below threshold.
 - Mutation testing (`gomutants`) is out of scope here; mention only as a possible
   follow-on after coverage is adequate.
 
+## Tests explained registry (required)
+
+After creating or **materially changing** any test case, keep human/machine
+traceability current:
+
+1. **Upsert** `tests-explained.yaml` (repo root) for each touched test:
+   - `id`: `{module_import_path}::{TestFunction}`  
+     (module = `github.com/andre-ols/go-face-recognition`)
+   - `test`, `test_file`, `skill: white-box-test-generation`
+   - `objective` — coverage gap closed / why the case exists
+   - `system_under_test` — package/symbol/behavior
+   - `production_refs` — production paths (include loci when known)
+   - Optional: `covers`, `updated_at`
+2. If you **delete** a test you registered, remove its YAML entry.
+3. **Regenerate** Markdown:
+
+```bash
+python3 scripts/render-tests-explained.py
+```
+
+Do not hand-edit `TESTS_EXPLAINED.md` as the primary store.
+
 ## Output expectations
 
 Report:
@@ -151,5 +173,6 @@ Report:
 - Final `go tool cover -func` summary (or overall %)
 - Paths to `coverage.out` / `coverage.html`
 - Tests/files added or updated (`*_test.go` / fixtures only)
+- Confirmation that `tests-explained.yaml` + `TESTS_EXPLAINED.md` were updated
 - Any blocked uncovered statements (file, line/region, reason category) and that
   you are waiting on the user before any production change
